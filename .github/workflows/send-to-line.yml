@@ -1,0 +1,38 @@
+name: Send to Line
+
+on:
+  push:
+    paths:
+      - 'news/**.md'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Get latest news file
+        id: news
+        run: |
+          FILE=$(git diff --name-only HEAD~1 HEAD | grep 'news/' | head -1)
+          if [ -z "$FILE" ]; then
+            echo "content=ไม่พบไฟล์ข่าวใหม่" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CONTENT=$(head -c 950 "$FILE")
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send Line Messaging API
+        run: |
+          MESSAGE="${{ steps.news.outputs.content }}"
+          PAYLOAD=$(jq -n --arg text "$MESSAGE" \
+            --arg to "${{ secrets.LINE_USER_ID }}" \
+            '{to: $to, messages: [{type: "text", text: $text}]}')
+          curl -s -X POST https://api.line.me/v2/bot/message/push \
+            -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
