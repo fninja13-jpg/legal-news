@@ -21,7 +21,7 @@ jobs:
             echo "content=ไม่พบไฟล์ข่าวใหม่" >> $GITHUB_OUTPUT
             exit 0
           fi
-          CONTENT=$(head -c 950 "$FILE")
+          CONTENT=$(head -c 4500 "$FILE")
           echo "content<<EOF" >> $GITHUB_OUTPUT
           echo "$CONTENT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
