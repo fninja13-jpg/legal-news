@@ -27,12 +27,25 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Send Line Messaging API
+        env:
+          MESSAGE: ${{ steps.news.outputs.content }}
+          LINE_CHANNEL_TOKEN: ${{ secrets.LINE_CHANNEL_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
         run: |
-          MESSAGE="${{ steps.news.outputs.content }}"
-          PAYLOAD=$(jq -n --arg text "$MESSAGE" \
-            --arg to "${{ secrets.LINE_USER_ID }}" \
+          PAYLOAD=$(jq -n \
+            --arg text "$MESSAGE" \
+            --arg to "$LINE_USER_ID" \
             '{to: $to, messages: [{type: "text", text: $text}]}')
-          curl -s -X POST https://api.line.me/v2/bot/message/push \
-            -H "Authorization: Bearer ${{ secrets.LINE_CHANNEL_TOKEN }}" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://api.line.me/v2/bot/message/push \
+            -H "Authorization: Bearer $LINE_CHANNEL_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD"
+            -d "$PAYLOAD")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ LINE API error"
+            exit 1
+          fi
+          echo "✅ ส่งสำเร็จ"
