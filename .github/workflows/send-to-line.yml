@@ -2,6 +2,9 @@ name: Send to Line
 
 on:
   push:
+    branches:
+      - main
+      - 'claude/**'
     paths:
       - 'news/**.md'
 
@@ -17,6 +20,9 @@ jobs:
         id: news
         run: |
           FILE=$(git diff --name-only HEAD~1 HEAD | grep 'news/' | head -1)
+          if [ -z "$FILE" ]; then
+            FILE=$(ls -t news/*.md 2>/dev/null | head -1)
+          fi
           if [ -z "$FILE" ]; then
             echo "content=ไม่พบไฟล์ข่าวใหม่" >> $GITHUB_OUTPUT
             exit 0
